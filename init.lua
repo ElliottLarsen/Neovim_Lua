@@ -87,7 +87,6 @@ require('lualine').setup {
 -- Turn on last place (remember where you were when reopening a file)
 require'nvim-lastplace'.setup{}
 
-
 -- Turn on treesitter
 require'nvim-treesitter.configs'.setup {
   highlight = {
@@ -136,4 +135,124 @@ prettier.setup({
     "typescriptreact",
     "yaml",
   },
+})
+
+-- Turn on indentline
+vim.opt.listchars:append "space:⋅"
+vim.opt.listchars:append "eol:↴"
+
+require("indent_blankline").setup {
+  enabled=false,
+  show_current_context = false,
+  show_current_context_start = true,
+  show_first_indent_level = false,
+  use_treesitter = true,
+  use_treesitter_scope = true,
+  blankline_char='',
+}
+
+local lspconfig = require('lspconfig')
+
+local lsp_defaults = {
+  flags = {
+    debounce_text_changes = 150,
+  },
+  capabilities = require('cmp_nvim_lsp').update_capabilities(
+    vim.lsp.protocol.make_client_capabilities()
+  ),
+  on_attach = function(client, bufnr)
+    vim.api.nvim_exec_autocmds('User', {pattern = 'LspAttached'})
+  end
+}
+
+lspconfig.util.default_config = vim.tbl_deep_extend(
+  'force',
+  lspconfig.util.default_config,
+  lsp_defaults
+  )
+
+local util = require 'lspconfig.util'
+
+local root_files = {
+  'compile_commands.json',
+  '.ccls',
+}
+
+require'lspconfig'.ccls.setup {
+  single_file_support = true,
+  root_dir = function(fname)
+      return util.root_pattern(unpack(root_files))(fname) or util.find_git_ancestor(fname) or vim.loop.cwd()
+  end,
+  init_options = {
+    cache = {
+      directory = "";
+    },
+    completion = {
+      placeholder = false;
+    },
+    diagnostics = {
+      onOpen = 0,
+      onChange = 1,
+      onSave = 0,
+    },
+    clang = {
+      extraArgs = 
+        vim.list_extend(vim.split(os.getenv("CFLAGS") or "", " ", true), 
+        {'--gcc-toolchain=/usr'})
+    }
+  },
+}
+
+print(vim.inspect(vim.list_extend(vim.split(os.getenv("CFLAGS") or "", " ", true), 
+        {'-DMENU=12'})))
+
+vim.api.nvim_create_autocmd('User', {
+  pattern = 'LspAttached',
+  desc = 'LSP actions',
+  callback = function()
+    local bufmap = function(mode, lhs, rhs)
+      local opts = {buffer = true}
+      vim.keymap.set(mode, lhs, rhs, opts)
+    end
+
+    -- Displays hover information about the symbol under the cursor
+    bufmap('n', 'K', '<cmd>lua vim.lsp.buf.hover()<cr>')
+
+    -- Jump to the definition
+    bufmap('n', 'gd', '<cmd>lua vim.lsp.buf.definition()<cr>')
+
+    -- Jump to declaration
+    bufmap('n', 'gD', '<cmd>lua vim.lsp.buf.declaration()<cr>')
+
+    -- Lists all the implementations for the symbol under the cursor
+    bufmap('n', 'gi', '<cmd>lua vim.lsp.buf.implementation()<cr>')
+
+    -- Jumps to the definition of the type symbol
+    bufmap('n', 'go', '<cmd>lua vim.lsp.buf.type_definition()<cr>')
+
+    -- Lists all the references 
+    bufmap('n', 'gr', '<cmd>lua vim.lsp.buf.references()<cr>')
+
+    -- Displays a function's signature information
+    bufmap('n', '<C-k>', '<cmd>lua vim.lsp.buf.signature_help()<cr>')
+
+    -- Renames all references to the symbol under the cursor
+    bufmap('n', '<F2>', '<cmd>lua vim.lsp.buf.rename()<cr>')
+
+    -- Selects a code action available at the current cursor position
+    bufmap('n', '<F4>', '<cmd>lua vim.lsp.buf.code_action()<cr>')
+    bufmap('x', '<F4>', '<cmd>lua vim.lsp.buf.range_code_action()<cr>')
+
+    -- Show diagnostics in a floating window
+    bufmap('n', 'gl', '<cmd>lua vim.diagnostic.open_float()<cr>')
+
+    -- Move to the previous diagnostic
+    bufmap('n', '[d', '<cmd>lua vim.diagnostic.goto_prev()<cr>')
+
+    -- Move to the next diagnostic
+    bufmap('n', ']d', '<cmd>lua vim.diagnostic.goto_next()<cr>')
+
+    bufmap('n', '<Leader>f', '<cmd>lua vim.lsp.buf.formatting()<cr>')
+    bufmap('x', '<Leader>f', '<cmd>lua vim.lsp.buf.range_formatting()<cr>')
+  end
 })
