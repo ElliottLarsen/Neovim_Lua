@@ -206,6 +206,7 @@ require'lspconfig'.ccls.setup {
 print(vim.inspect(vim.list_extend(vim.split(os.getenv("CFLAGS") or "", " ", true), 
         {'-DMENU=12'})))
 
+
 vim.api.nvim_create_autocmd('User', {
   pattern = 'LspAttached',
   desc = 'LSP actions',
@@ -252,7 +253,122 @@ vim.api.nvim_create_autocmd('User', {
     -- Move to the next diagnostic
     bufmap('n', ']d', '<cmd>lua vim.diagnostic.goto_next()<cr>')
 
+
     bufmap('n', '<Leader>f', '<cmd>lua vim.lsp.buf.formatting()<cr>')
     bufmap('x', '<Leader>f', '<cmd>lua vim.lsp.buf.range_formatting()<cr>')
   end
 })
+
+vim.opt.completeopt = {'menu', 'menuone', 'noselect'}
+
+local cmp = require('cmp')
+local luasnip = require('luasnip')
+
+local select_opts = {behavior = cmp.SelectBehavior.Select}
+
+cmp.setup({
+  snippet = {
+    expand = function(args)
+      luasnip.lsp_expand(args.body)
+    end
+  },
+  sources = {
+    {name = 'nvim_lsp_signature_help'},
+    {name = 'path'},
+    {name = 'nvim_lsp', keyword_length = 3},
+    {name = 'buffer', keyword_length = 3},
+    {name = 'luasnip', keyword_length = 2},
+  },
+  window = {
+    documentation = cmp.config.window.bordered()
+  },
+  formatting = {
+    fields = {'menu', 'abbr', 'kind'},
+    format = function(entry, item)
+      local menu_icon = {
+        nvim_lsp = 'λ',
+        luasnip = '⋗',
+        buffer = 'Ω',
+        path = '🖫',
+      }
+      item.menu = menu_icon[entry.source.name]
+      return item
+    end,
+  },
+  mapping = {
+    ['<Up>'] = cmp.mapping.select_prev_item(select_opts),
+    ['<Down>'] = cmp.mapping.select_next_item(select_opts),
+
+    ['<C-p>'] = cmp.mapping.select_prev_item(select_opts),
+    ['<C-n>'] = cmp.mapping.select_next_item(select_opts),
+
+    ['<C-u>'] = cmp.mapping.scroll_docs(-4),
+    ['<C-f>'] = cmp.mapping.scroll_docs(4),
+
+    ['<C-e>'] = cmp.mapping.abort(),
+    ['<CR>'] = cmp.mapping.confirm(),
+
+
+    ['<Tab>'] = cmp.mapping(function(fallback)
+      local col = vim.fn.col('.') - 1
+
+      if cmp.visible() then
+        cmp.select_next_item(select_opts)
+      elseif col == 0 or vim.fn.getline('.'):sub(col, col):match('%s') then
+        fallback()
+      else
+        cmp.complete()
+      end
+    end, {'i', 's'}),
+
+    ['<S-Tab>'] = cmp.mapping(function(fallback)
+      if cmp.visible() then
+        cmp.select_prev_item(select_opts)
+      else
+        fallback()
+      end
+    end, {'i', 's'}),
+  },
+})
+
+-- Setup nvim-tree
+nvim_tree = require("nvim-tree")
+nvim_tree.setup({
+  actions = {
+    open_file = {
+      quit_on_open = true,
+    },
+  },
+  renderer = {
+    icons = {
+      glyphs = {
+        default = " ",
+        symlink = "*",
+        modified = "!",
+        folder = {
+          arrow_closed = "›",
+          arrow_open = "⌄",
+        },
+        git = {
+          deleted = "🗑",
+        }
+      },
+    },
+  },
+})
+
+local function open_nvim_tree(data)
+
+  -- buffer is a real file on the disk
+  local real_file = vim.fn.filereadable(data.file) == 1
+
+  -- buffer is a [No Name]
+  local no_name = data.file == "" and vim.bo[data.buf].buftype == ""
+
+  if not real_file and not no_name then
+    return
+  end
+
+  -- open the tree, find the file but don't focus it
+  require("nvim-tree.api").tree.toggle({ focus = false, find_file = true, })
+end
