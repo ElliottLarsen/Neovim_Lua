@@ -14,6 +14,28 @@ local packer_bootstrap = ensure_packer()
 return require('packer').startup(function(use)
   use 'wbthomason/packer.nvim'
   -- My plugins here
+  use 'nvim-tree/nvim-tree.lua'
+  use 'nvim-tree/nvim-web-devicons'
+  use 'nvim-lualine/lualine.nvim'
+  use 'ethanholz/nvim-lastplace'
+  use {'catppuccin/nvim', as = 'catppuccin'}
+  use 'nvim-treesitter/nvim-treesitter'
+  use {'nvim-telescope/telescope.nvim', tag = '0.1.2',
+    requires = {{'nvim-lua/plenary.nvim'}}
+  }
+  use {
+      'williamboman/mason.nvim',
+      'williamboman/mason-lspconfig.nvim',
+      'neovim/nvim-lspconfig',
+  }
+  use 'jose-elias-alvarez/null-ls.nvim'
+  use 'MunifTanjim/prettier.nvim'
+  use {'lukas-reineke/indent-blankline.nvim', as = 'indent_blankline'}
+  use 'hrsh7th/nvim-cmp'
+  use 'hrsh7th/cmp-nvim-lsp'
+  use 'L3MON4D3/LuaSnip'
+  use 'saadparwaiz1/cmp_luasnip'
+  use 'jiangmiao/auto-pairs'
   -- use 'foo1/bar1.nvim'
   -- use 'foo2/bar2.nvim'
 
